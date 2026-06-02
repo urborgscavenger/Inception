@@ -1,0 +1,75 @@
+services:
+  nginx:
+    build: requirements/nginx
+    container_name: nginx
+    restart: unless-stopped
+    ports:
+      - "${HOST_HTTPS_PORT:-443}:443"
+    volumes:
+      - wp-volume:/var/www/wordpress
+    secrets:
+      - db_password
+      - db_root_password
+      - wp_admin_password
+    env_file:
+      - .env
+    depends_on:
+      - wordpress
+    networks:
+      - inception-network
+
+  wordpress:
+    build: requirements/wordpress
+    container_name: wordpress
+    restart: unless-stopped
+    volumes:
+      - wp-volume:/var/www/wordpress
+    secrets:
+      - db_password
+      - wp_admin_password
+    env_file:
+      - .env
+    depends_on:
+      - mariadb
+    networks:
+      - inception-network
+
+  mariadb:
+    build: requirements/mariadb
+    container_name: mariadb
+    restart: unless-stopped
+    volumes:
+      - db-volume:/var/lib/mysql
+    secrets:
+      - db_password
+      - db_root_password
+    env_file:
+      - .env
+    networks:
+      - inception-network
+
+volumes:
+  wp-volume:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/mbauer/data/wordpress
+  db-volume:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/mbauer/data/database
+
+networks:
+  inception-network:
+    driver: bridge
+
+secrets:
+  db_password:
+    file: ../secrets/db_password.txt
+  db_root_password:
+    file: ../secrets/db_root_password.txt
+  wp_admin_password:
+    file: ../secrets/wp_admin_password.txt
